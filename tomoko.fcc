@@ -6,6 +6,7 @@ passwd:
       ssh_authorized_keys:
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrCBG7HfOvjIjzLdddVNns4nibDLV6DnVMhPSXUmm/j rokoucha@Minna
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7UtJAib9hokde1hbfySbqUe+VhGlEMSaM5IrTLKSo4 rokoucha@sanya
+storage:
   files:
     - path: /etc/selinux/config
       contents:

@@ -4,7 +4,7 @@ ENCODER = base64
 ENCODING_OPTION = -w0
 FCC = ignition.fcc
 FCCT_OPTIONS = --pretty --strict
-IGNITION = ignition.ign
+IGNITION = ignitron.ign
 IGNITION_B64 = $(IGNITION).b64
 FCCT_IMAGE = quay.io/coreos/fcct:release
 
