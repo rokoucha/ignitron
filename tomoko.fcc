@@ -12,22 +12,91 @@ storage:
       contents:
         inline: |
           SELINUX=disabled
+          SELINUXTYPE=targeted
       mode: 0664
       overwrite: true
     - path: /etc/NetworkManager/system-connections/eth0.nmconnection
       contents:
         inline: |
           [connection]
-          type=ethernet
           interface-name=eth0
+          type=ethernet
 
           [ipv4]
-          method=manual
           addresses=10.0.1.5
-          gateway=10.0.1.1
           dns=10.0.1.1;1.1.1.1
+          gateway=10.0.1.1
+          method=manual
 
           [ipv6]
           method=auto
+      mode: 0600
+      overwrite: true
+    - path: /opt/open-vm-tools/Dockerfile
+      contents:
+        inline: |
+          FROM fedora:32
+
+          RUN dnf \
+            --setopt=install_weak_deps=False \
+            --setopt=override_install_langs=en_US.utf8 \
+            --setopt=tsflags=nodocs \
+            -y \
+            install \
+            file \
+            iproute \
+            net-tools \
+            open-vm-tools \
+            && dnf clean all
+
+          CMD /usr/bin/vmtoolsd
       mode: 0644
       overwrite: true
+systemd:
+  units:
+    - name: set-hostname.service
+      enabled: true
+      contents: |
+        [Unit]
+        After=NetworkManager-wait-online.service
+        Description=Set hostname with hostnamectl
+
+        [Service]
+        ExecStart=/usr/bin/hostnamectl set-hostname tomoko
+        RemainAfterExit=yes
+        Type=oneshot
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: vmtoolsd.service
+      enabled: true
+      contents: |
+        [Unit]
+        After=network-online.target
+        ConditionVirtualization=vmware
+        Description=Open Virtual Machine Tools (VMware Tools)
+        Wants=network-online.target
+
+        [Service]
+        TimeoutStartSec=0
+        ExecStartPre=-/usr/bin/podman kill vmtoolsd
+        ExecStartPre=-/usr/bin/podman rm vmtoolsd
+        ExecStartPre=/usr/bin/podman build -t open-vm-tools /opt/open-vm-tools
+        ExecStart=/usr/bin/podman run \
+          --ipc=host \
+          --name vmtoolsd \
+          --net=host \
+          --pid=host \
+          --privileged \
+          --rm \
+          --uts=host \
+          -e SYSTEMD_IGNORE_CHROOT=1 \
+          -v /proc/:/hostproc/ \
+          -v /run/systemd:/run/systemd \
+          -v /sys/fs/cgroup:/sys/fs/cgroup \
+          open-vm-tools
+        KillMode=none
+        Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
