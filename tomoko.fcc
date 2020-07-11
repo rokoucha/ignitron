@@ -7,6 +7,28 @@ passwd:
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrCBG7HfOvjIjzLdddVNns4nibDLV6DnVMhPSXUmm/j rokoucha@Minna
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7UtJAib9hokde1hbfySbqUe+VhGlEMSaM5IrTLKSo4 rokoucha@sanya
 storage:
+  directories:
+    - path: /var/home/core
+      group:
+        name: core
+      mode: 0700
+      user:
+        name: core
+    - path: /var/lib/containers
+      group:
+        name: root
+      mode: 0755
+      user:
+        name: root
+  disks:
+    - device: /dev/sdb
+      wipe_table: true
+      partitions:
+        - label: podman
+          number: 1
+          size_mib: 32768
+        - label: home
+          number: 0
   files:
     - path: /etc/selinux/config
       contents:
@@ -48,8 +70,25 @@ storage:
           CMD /usr/bin/vmtoolsd
       mode: 0644
       overwrite: true
+  filesystems:
+    - path: /var/lib/containers
+      device: /dev/disk/by-partlabel/podman
+      format: xfs
 systemd:
   units:
+    - name: var-lib-containers.mount
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Mount Podman directory
+        Before=local-fs.target
+
+        [Mount]
+        What=/dev/disk/by-partlabel/podman
+        Where=/var/lib/containers
+
+        [Install]
+        WantedBy=local-fs.target
     - name: set-hostname.service
       enabled: true
       contents: |
