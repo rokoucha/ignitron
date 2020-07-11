@@ -37,15 +37,11 @@ storage:
         inline: |
           FROM fedora:32
 
-          RUN dnf \
+          RUN dnf install \
             --setopt=install_weak_deps=False \
             --setopt=override_install_langs=en_US.utf8 \
             --setopt=tsflags=nodocs \
             -y \
-            install \
-            file \
-            iproute \
-            net-tools \
             open-vm-tools \
             && dnf clean all
 
@@ -58,8 +54,9 @@ systemd:
       enabled: true
       contents: |
         [Unit]
-        After=NetworkManager-wait-online.service
+        After=network-online.target
         Description=Set hostname with hostnamectl
+        Wants=network-online.target
 
         [Service]
         ExecStart=/usr/bin/hostnamectl set-hostname tomoko
