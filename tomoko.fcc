@@ -3,6 +3,7 @@ version: 1.0.0
 passwd:
   users:
     - name: core
+      password_hash: $y$j9T$sKQu3acPZZKvvu0AdGgcs/$jjeX14lru1NOIdy3fmZAUnCNZeEhIOS2m5ahrVteJw1
       ssh_authorized_keys:
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrCBG7HfOvjIjzLdddVNns4nibDLV6DnVMhPSXUmm/j rokoucha@Minna
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7UtJAib9hokde1hbfySbqUe+VhGlEMSaM5IrTLKSo4 rokoucha@sanya
@@ -137,4 +138,27 @@ systemd:
         Type=simple
 
         [Install]
+        WantedBy=multi-user.target
+    - name: setup-cockpit.service
+      enabled: true
+      contents: |
+        [Unit]
+        After=multi-user.target
+        After=network-online.target
+        Before=boot-complete.target
+        ConditionFirstBoot=yes
+        Description=Setup cockpit
+        Wants=network-online.target
+
+        [Service]
+        ExecStartPre=/usr/bin/rpm-ostree install cockpit-system cockpit-ostree cockpit-podman cockpit-networkmanager
+        ExecStartPre=/usr/bin/rpm-ostree ex livefs --i-like-danger
+        ExecStartPre=/usr/bin/podman pull cockpit/ws
+        ExecStartPre=/usr/bin/podman container runlabel --name cockpit-ws RUN cockpit/ws
+        ExecStartPre=/usr/bin/podman container runlabel INSTALL cockpit/ws cockpit/ws
+        ExecStart=/usr/bin/systemctl enable --now cockpit.service
+        Type=oneshot
+
+        [Install]
+        RequiredBy=boot-complete.target
         WantedBy=multi-user.target
