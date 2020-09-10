@@ -17,6 +17,11 @@ storage:
         - label: home
           number: 0
   files:
+    - path: /etc/hostname
+      overwrite: true
+      mode: 0644
+      contents:
+        inline: tomoko
     - path: /etc/selinux/config
       contents:
         inline: |
@@ -28,7 +33,7 @@ storage:
       contents:
         inline: |
           [connection]
-          interface-name=eth0
+          interface-name=ens192
           type=ethernet
 
           [ipv4]
@@ -91,21 +96,6 @@ systemd:
 
         [Install]
         WantedBy=local-fs.target
-    - name: set-hostname.service
-      enabled: true
-      contents: |
-        [Unit]
-        After=network-online.target
-        Description=Set hostname with hostnamectl
-        Wants=network-online.target
-
-        [Service]
-        ExecStart=/usr/bin/hostnamectl set-hostname tomoko
-        RemainAfterExit=yes
-        Type=oneshot
-
-        [Install]
-        WantedBy=multi-user.target
     - name: vmtoolsd.service
       enabled: true
       contents: |
