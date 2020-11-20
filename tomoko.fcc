@@ -4,10 +4,10 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICEiXuzP0Nt9KWzbolU9uuOW/qg5ul345dbK7/WVzOMr tomoko_deploy
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7UtJAib9hokde1hbfySbqUe+VhGlEMSaM5IrTLKSo4 rokoucha@sanya
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKWxEEBrnYnp/vh7kEZoo25CntJRURKbYHLLvhuKGbTn rokoucha@Minna
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMayjSB1G1n6nF09SvjIsxb9uT6LnEOByAvtYgGFnq8q rokoucha@shizuka
-
 storage:
   disks:
     - device: /dev/sdb
@@ -109,6 +109,12 @@ storage:
           }
       mode: 0600
       overwrite: true
+    - path: /etc/sysctl.d/50-forward.conf
+      contents:
+        inline: |
+          net.ipv4.ip_forward = 1
+          net.ipv6.conf.all.forwarding = 1
+      mode: 0644
     - path: /opt/open-vm-tools/Dockerfile
       contents:
         inline: |
@@ -124,7 +130,8 @@ storage:
 
           CMD /usr/bin/vmtoolsd
       mode: 0644
-      overwrite: true
+    - path: /var/lib/systemd/linger/core
+      mode: 0644
   filesystems:
     - path: /var/home
       device: /dev/disk/by-partlabel/home
@@ -132,6 +139,9 @@ storage:
     - path: /var/lib/containers
       device: /dev/disk/by-partlabel/podman
       format: xfs
+  links:
+    - path: /etc/localtime
+      target: /usr/share/zoneinfo/Asia/Tokyo
 systemd:
   units:
     - name: var-home.mount
