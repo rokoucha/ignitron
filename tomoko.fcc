@@ -4,10 +4,10 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICEiXuzP0Nt9KWzbolU9uuOW/qg5ul345dbK7/WVzOMr tomoko_deploy
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7UtJAib9hokde1hbfySbqUe+VhGlEMSaM5IrTLKSo4 rokoucha@sanya
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKWxEEBrnYnp/vh7kEZoo25CntJRURKbYHLLvhuKGbTn rokoucha@Minna
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0iv4j/9VUeotJ0Kl6n2V0FOCMVHEC1ve2Bw8O3RLOr rokoucha@sanya
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMayjSB1G1n6nF09SvjIsxb9uT6LnEOByAvtYgGFnq8q rokoucha@shizuka
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINb9MWmNA2To6XicT5HK2lf29n7F06tWpEQ6E3FPa9uD rokoucha@eila
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOaE8LEuHOt0KPkAoOdbvzW93BgE7ZpdSrzlWnc1uZ7n rokoucha@Furstin.local
 storage:
   disks:
     - device: /dev/sdb
@@ -85,10 +85,18 @@ storage:
               ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 10/second accept;
               ip protocol icmp icmp type echo-request limit rate 10/second accept;
 
+              # Allow SSH
               tcp dport ssh limit rate 15/minute accept;
+
+              # Allow HTTP and HTTPS
               tcp dport { http, https } accept;
 
+              # Allow nginx redirect ports
               tcp dport { 50080, 50443 } accept;
+
+              # Allow TeamSpeak
+              udp dport 9987 accept;
+              tcp dport { 10011, 30033 } accept;
             }
 
             chain forward {
@@ -181,16 +189,21 @@ systemd:
         Wants=network-online.target
 
         [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=60
         TimeoutStartSec=0
-        ExecStartPre=-/usr/bin/podman kill vmtoolsd
-        ExecStartPre=-/usr/bin/podman rm vmtoolsd
+        ExecStartPre=/bin/rm -f %t/container-vmtoolsd.pid %t/container-vmtoolsd.ctr-id
         ExecStartPre=/usr/bin/podman build -t open-vm-tools /opt/open-vm-tools
         ExecStart=/usr/bin/podman run \
+          --cidfile %t/container-vmtoolsd.ctr-id \
+          --conmon-pidfile %t/container-vmtoolsd.pid \
           --ipc=host \
           --name vmtoolsd \
           --net=host \
           --pid=host \
           --privileged \
+          --replace \
           --rm \
           --uts=host \
           -e SYSTEMD_IGNORE_CHROOT=1 \
@@ -198,8 +211,30 @@ systemd:
           -v /run/systemd:/run/systemd \
           -v /sys/fs/cgroup:/sys/fs/cgroup \
           open-vm-tools
-        KillMode=none
+        ExecStop=/usr/bin/podman stop --ignore --cidfile %t/container-vmtoolsd.ctr-id -t 10
+        ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/container-vmtoolsd.ctr-id
+        PIDFile=%t/container-vmtoolsd.pid
         Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: cgroups-v2-karg.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Switch To cgroups v2
+        # We run after `systemd-machine-id-commit.service` to ensure that
+        # `ConditionFirstBoot=true` services won't rerun on the next boot.
+        After=systemd-machine-id-commit.service
+        ConditionKernelCommandLine=systemd.unified_cgroup_hierarchy
+        ConditionPathExists=!/var/lib/cgroups-v2-karg.stamp
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/rpm-ostree kargs --delete=systemd.unified_cgroup_hierarchy
+        ExecStart=/bin/touch /var/lib/cgroups-v2-karg.stamp
+        ExecStart=/bin/systemctl --no-block reboot
 
         [Install]
         WantedBy=multi-user.target
