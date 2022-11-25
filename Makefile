@@ -1,18 +1,17 @@
+BUTANE = podman run -i --rm --volume .:/butane quay.io/coreos/butane:release --files-dir /butane --pretty --strict
+GZIP = gzip -c9
+BASE64 = base64 -w0
+
 .PHONY: clean
-DOCKER = /usr/bin/env docker
-ENCODER = base64
-ENCODING_OPTION = -w0
-FCC = ignition.fcc
-FCCT_OPTIONS = --pretty --strict
-IGNITION = ignitron.ign
-IGNITION_B64 = $(IGNITION).b64
-FCCT_IMAGE = quay.io/coreos/fcct:release
+.SUFFIXES: .b64 .ign .bu
 
-$(IGNITION_B64): $(IGNITION)
-	$(ENCODER) $(ENCODING_OPTION) $(IGNITION) > $(IGNITION_B64)
-
-$(IGNITION): $(FCC)
-	$(DOCKER) run --rm -i $(FCCT_IMAGE) $(FCCT_OPTIONS) < $(FCC) > $(IGNITION)
+tomoko.b64: tomoko.bu
 
 clean:
-	rm -f $(IGNITION) $(IGNITION_B64)
+	rm -f tomoko.ign.b64
+
+.ign.b64:
+	$(GZIP) $< | $(BASE64) > $@
+
+.bu.ign:
+	$(BUTANE) /butane/$< > $@

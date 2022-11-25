@@ -1,5 +1,3 @@
-# Compiled configuration
-*.ign
-
-# Encoded configuration
 *.b64
+*.ign
+.env
