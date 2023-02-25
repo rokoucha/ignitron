@@ -6,7 +6,7 @@ storage:
       overwrite: true
       mode: 0644
       contents:
-        inline: tomoko
+        inline: vesna
     - path: /etc/NetworkManager/system-connections/ens192.nmconnection
       contents:
         inline: |
