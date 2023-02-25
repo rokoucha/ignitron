@@ -28,7 +28,6 @@ storage:
           type=vlan
 
           [vlan]
-          flags=1
           id=20
           parent=ens192
 
@@ -40,6 +39,74 @@ storage:
 
           [ipv6]
           method=auto
+      mode: 0600
+    - path: /etc/NetworkManager/system-connections/ens192.100.nmconnection
+      contents:
+        inline: |
+          [connection]
+          id=ens192.100
+          type=vlan
+
+          [vlan]
+          id=100
+          parent=ens192
+
+          [ipv4]
+          method=disabled
+
+          [ipv6]
+          method=disabled
+      mode: 0600
+    - path: /etc/NetworkManager/system-connections/ens192.110.nmconnection
+      contents:
+        inline: |
+          [connection]
+          id=ens192.110
+          type=vlan
+
+          [vlan]
+          id=110
+          parent=ens192
+
+          [ipv4]
+          method=disabled
+
+          [ipv6]
+          method=disabled
+      mode: 0600
+    - path: /etc/NetworkManager/system-connections/ens192.120.nmconnection
+      contents:
+        inline: |
+          [connection]
+          id=ens192.120
+          type=vlan
+
+          [vlan]
+          id=120
+          parent=ens192
+
+          [ipv4]
+          method=disabled
+
+          [ipv6]
+          method=disabled
+      mode: 0600
+    - path: /etc/NetworkManager/system-connections/ens192.130.nmconnection
+      contents:
+        inline: |
+          [connection]
+          id=ens192.130
+          type=vlan
+
+          [vlan]
+          id=130
+          parent=ens192
+
+          [ipv4]
+          method=disabled
+
+          [ipv6]
+          method=disabled
       mode: 0600
     - path: /etc/sysconfig/nftables.conf
       contents:
@@ -80,6 +147,10 @@ storage:
 
               # Allow SSH
               tcp dport ssh limit rate 15/minute accept;
+
+              # Allow node_exporter
+              tcp dport 9100 ip saddr { 172.16.2.0/24 } accept;
+              tcp dport 9100 ip6 saddr { 2400:2410:3800:2502::/64 } accept;
             }
           }
       mode: 0600
