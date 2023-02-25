@@ -7,15 +7,17 @@ BASE_DIR = ./
 
 BASE_CONFIG = _base.bu
 
+TARGET = $(addsuffix .b64,$(basename $(filter-out $(BASE_CONFIG),$(wildcard *.bu))))
+
 _BASE_CONFIG = $(addprefix $(BASE_DIR), $(BASE_CONFIG))
 
 .PHONY: all clean controller worker
 .SUFFIXES: .b64 .ign .bu
 
-all:
+all: $(TARGET)
 
 clean:
-	rm -f *.ign *.b64
+	rm -f *.ign *.b64 $(TARGET)
 
 controller: $(_CONTROLLER_FILES)
 
