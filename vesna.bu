@@ -148,10 +148,250 @@ storage:
               # Allow SSH
               tcp dport ssh limit rate 15/minute accept;
 
-              # Allow node_exporter
-              tcp dport 9100 ip saddr { 172.16.2.0/24 } accept;
-              tcp dport 9100 ip6 saddr { 2400:2410:3800:2502::/64 } accept;
+              # Allow prometheus exporters
+              tcp dport { 9100, 9115 } ip saddr { 172.16.2.0/24 } accept;
+              tcp dport { 9100, 9115 } ip6 saddr { 2400:2410:3800:2502::/64 } accept;
             }
           }
       mode: 0600
       overwrite: true
+    - path: /var/home/core/.env/blackbox_exporter.yml
+      contents:
+        local: vesna_files/blackbox_exporter.yml
+      mode: 0644
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.env/traefik_dynamic.yml
+      contents:
+        local: vesna_files/traefik_dynamic.yml
+      mode: 0644
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.env/traefik.yml
+      contents:
+        local: vesna_files/traefik.yml
+      mode: 0644
+      user:
+        name: core
+      group:
+        name: core
+systemd:
+  units:
+    - name: create-podman-networks.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Create podman networks
+        Wants=network-online.target
+        After=network-online.target
+        ConditionPathExists=!/var/lib/%N.stamp
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/podman network create -d macvlan --ip-range 172.16.10.32/27  -o parent=ens192.100 -o mode=passthru --subnet 172.16.10.0/24 bbix
+        ExecStart=/usr/bin/podman network create -d macvlan --ip-range 172.16.11.32/27  -o parent=ens192.110 -o mode=passthru --subnet 172.16.11.0/24 vectant
+        ExecStart=/usr/bin/podman network create -d macvlan --ip-range 172.16.12.32/27  -o parent=ens192.120 -o mode=passthru --subnet 172.16.12.0/24 mobile
+        ExecStart=/usr/bin/podman network create -d macvlan --ip-range 172.16.13.32/27  -o parent=ens192.130 -o mode=passthru --subnet 172.16.13.0/24 itscom
+        ExecStart=/bin/touch /var/lib/%N.stamp
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: blackbox_exporter-bbix.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Blackbox prober exporter for BBIX
+        Documentation=man:podman-generate-systemd(1)
+        Wants=network-online.target
+        After=network-online.target
+        RequiresMountsFor=%t/containers
+
+        [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=70
+        ExecStart=/usr/bin/podman run \
+                --cgroups=no-conmon \
+                --cidfile=%t/%n.ctr-id \
+                --detach \
+                --name blackbox_exporter-bbix \
+                --network bbix,local \
+                --publish 9110:9115 \
+                --replace \
+                --rm \
+                --sdnotify=conmon \
+                --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                quay.io/prometheus/blackbox-exporter:v0.23.0 \
+                --config.file=/config/blackbox_exporter.yml
+        ExecStop=/usr/bin/podman stop \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        ExecStopPost=/usr/bin/podman rm \
+                -f \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        Type=notify
+        NotifyAccess=all
+
+        [Install]
+        WantedBy=default.target
+    - name: blackbox_exporter-vectant.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Blackbox prober exporter for VECTANT
+        Documentation=man:podman-generate-systemd(1)
+        Wants=network-online.target
+        After=network-online.target
+        RequiresMountsFor=%t/containers
+
+        [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=70
+        ExecStart=/usr/bin/podman run \
+                --cgroups=no-conmon \
+                --cidfile=%t/%n.ctr-id \
+                --detach \
+                --name blackbox_exporter-vectant \
+                --network vectant,local \
+                --publish 9111:9115 \
+                --replace \
+                --rm \
+                --sdnotify=conmon \
+                --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                quay.io/prometheus/blackbox-exporter:v0.23.0 \
+                --config.file=/config/blackbox_exporter.yml
+        ExecStop=/usr/bin/podman stop \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        ExecStopPost=/usr/bin/podman rm \
+                -f \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        Type=notify
+        NotifyAccess=all
+
+        [Install]
+        WantedBy=default.target
+    - name: blackbox_exporter-mobile.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Blackbox prober exporter for mobile
+        Documentation=man:podman-generate-systemd(1)
+        Wants=network-online.target
+        After=network-online.target
+        RequiresMountsFor=%t/containers
+
+        [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=70
+        ExecStart=/usr/bin/podman run \
+                --cgroups=no-conmon \
+                --cidfile=%t/%n.ctr-id \
+                --detach \
+                --name blackbox_exporter-mobile \
+                --network mobile,local \
+                --publish 9112:9115 \
+                --replace \
+                --rm \
+                --sdnotify=conmon \
+                --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                quay.io/prometheus/blackbox-exporter:v0.23.0 \
+                --config.file=/config/blackbox_exporter.yml
+        ExecStop=/usr/bin/podman stop \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        ExecStopPost=/usr/bin/podman rm \
+                -f \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        Type=notify
+        NotifyAccess=all
+
+        [Install]
+        WantedBy=default.target
+    - name: blackbox_exporter-itscom.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Blackbox prober exporter for iTSCOM
+        Documentation=man:podman-generate-systemd(1)
+        Wants=network-online.target
+        After=network-online.target
+        RequiresMountsFor=%t/containers
+
+        [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=70
+        ExecStart=/usr/bin/podman run \
+                --cgroups=no-conmon \
+                --cidfile=%t/%n.ctr-id \
+                --detach \
+                --name blackbox_exporter-itscom \
+                --network itscom,local \
+                --publish 9113:9115 \
+                --replace \
+                --rm \
+                --sdnotify=conmon \
+                --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                quay.io/prometheus/blackbox-exporter:v0.23.0 \
+                --config.file=/config/blackbox_exporter.yml
+        ExecStop=/usr/bin/podman stop \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        ExecStopPost=/usr/bin/podman rm \
+                -f \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        Type=notify
+        NotifyAccess=all
+
+        [Install]
+        WantedBy=default.target
+    - name: traefik.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=The Cloud Native Application Proxy
+        Documentation=man:podman-generate-systemd(1)
+        Wants=network-online.target
+        After=network-online.target
+        RequiresMountsFor=%t/containers
+
+        [Service]
+        Environment=PODMAN_SYSTEMD_UNIT=%n
+        Restart=on-failure
+        TimeoutStopSec=70
+        ExecStart=/usr/bin/podman run \
+                --cgroups=no-conmon \
+                --cidfile=%t/%n.ctr-id \
+                --detach \
+                --name traefik \
+                --publish 9115:9115 \
+                --replace \
+                --rm \
+                --sdnotify=conmon \
+                --volume /var/home/core/.env/traefik_dynamic.yml:/traefik_dynamic.yml:ro \
+                --volume /var/home/core/.env/traefik.yml:/etc/traefik/traefik.yml:ro \
+                docker.io/library/traefik:2.9
+        ExecStop=/usr/bin/podman stop \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        ExecStopPost=/usr/bin/podman rm \
+                -f \
+                --ignore -t 10 \
+                --cidfile=%t/%n.ctr-id
+        Type=notify
+        NotifyAccess=all
+
+        [Install]
+        WantedBy=default.target

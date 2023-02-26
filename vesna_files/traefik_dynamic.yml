@@ -1,0 +1,48 @@
+## Dynamic configuration
+http:
+  routers:
+    to-bbix:
+      rule: "PathPrefix(`/bbix`)"
+      middlewares:
+        - strippath
+      service: bbix
+    to-vectant:
+      rule: "PathPrefix(`/vectant`)"
+      middlewares:
+        - strippath
+      service: vectant
+    to-mobile:
+      rule: "PathPrefix(`/mobile`)"
+      middlewares:
+        - strippath
+      service: mobile
+    to-itscom:
+      rule: "PathPrefix(`/itscom`)"
+      middlewares:
+        - strippath
+      service: itscom
+  middlewares:
+    strippath:
+      stripPrefix:
+        prefixes:
+          - "/bbix"
+          - "/vectant"
+          - "/mobile"
+          - "/itscom"
+  services:
+    bbix:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.2.13:9110/"
+    vectant:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.2.13:9111/"
+    mobile:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.2.13:9112/"
+    itscom:
+      loadBalancer:
+        servers:
+          - url: "http://172.16.2.13:9113/"
