@@ -163,6 +163,14 @@ storage:
         name: core
       group:
         name: core
+    - path: /var/home/core/.env/resolv.conf
+      contents:
+        local: vesna_files/resolv.conf
+      mode: 0644
+      user:
+        name: core
+      group:
+        name: core
     - path: /var/home/core/.env/traefik_dynamic.yml
       contents:
         local: vesna_files/traefik_dynamic.yml
@@ -226,6 +234,7 @@ systemd:
                 --rm \
                 --sdnotify=conmon \
                 --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                --volume /var/home/core/.env/resolv.conf:/etc/resolv.conf:ro \
                 quay.io/prometheus/blackbox-exporter:v0.23.0 \
                 --config.file=/config/blackbox_exporter.yml
         ExecStop=/usr/bin/podman stop \
@@ -265,6 +274,7 @@ systemd:
                 --rm \
                 --sdnotify=conmon \
                 --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                --volume /var/home/core/.env/resolv.conf:/etc/resolv.conf:ro \
                 quay.io/prometheus/blackbox-exporter:v0.23.0 \
                 --config.file=/config/blackbox_exporter.yml
         ExecStop=/usr/bin/podman stop \
@@ -304,6 +314,7 @@ systemd:
                 --rm \
                 --sdnotify=conmon \
                 --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                --volume /var/home/core/.env/resolv.conf:/etc/resolv.conf:ro \
                 quay.io/prometheus/blackbox-exporter:v0.23.0 \
                 --config.file=/config/blackbox_exporter.yml
         ExecStop=/usr/bin/podman stop \
@@ -343,6 +354,7 @@ systemd:
                 --rm \
                 --sdnotify=conmon \
                 --volume /var/home/core/.env/blackbox_exporter.yml:/config/blackbox_exporter.yml:ro \
+                --volume /var/home/core/.env/resolv.conf:/etc/resolv.conf:ro \
                 quay.io/prometheus/blackbox-exporter:v0.23.0 \
                 --config.file=/config/blackbox_exporter.yml
         ExecStop=/usr/bin/podman stop \
