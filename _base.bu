@@ -37,10 +37,22 @@ storage:
       mode: 0644
     - path: /var/lib/systemd/linger/core
       mode: 0644
-    - path: /var/roothome/.env
+    - path: /var/home/core/.env/cloudflare-ddns.env
       contents:
-        local: .env
+        local: .env/cloudflare-ddns.env
       mode: 0600
+      user:
+        name: core
+      group:
+        name: core
+    - path: /var/home/core/.env/mackerel-agent.env
+      contents:
+        local: .env/mackerel-agent.env
+      mode: 0600
+      user:
+        name: core
+      group:
+        name: core
   links:
     - path: /etc/localtime
       target: /usr/share/zoneinfo/Asia/Tokyo
@@ -117,7 +129,7 @@ systemd:
             --replace \
             --name=cloudflare-ddns \
             --net=host \
-            --env-file /var/roothome/.env \
+            --env-file /var/home/core/.env/cloudflare-ddns.env \
             ghcr.io/rokoucha/cloudflare-ddns:latest \
             --hostname=%H \
             --subdomain=dns \
@@ -153,7 +165,7 @@ systemd:
             --cgroups=no-conmon \
             --cidfile=%t/%n.ctr-id \
             --detach \
-            --env-file /var/roothome/.env \
+            --env-file /var/home/core/.env/mackerel-agent.env \
             --hostname %H \
             --ipc host \
             --name mackerel-agent \
