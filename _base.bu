@@ -4,12 +4,9 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIoDIaHvFkzwAkNdUKZ8TkepQuAsluZc5Y4UhWCAlBuU rokoucha@eila
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBg3QtWq4C1hTVWM2f198s7+9wftrLMhYJiEwtgCfN4o core@tomoko
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKBsd257k7iyaXxKRT1AE30hAF6DrF7jPNcsVgWqTake iPhone-12-mini
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMayjSB1G1n6nF09SvjIsxb9uT6LnEOByAvtYgGFnq8q rokoucha@shizuka
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMHvlECEoD+4U7EgHI+ZOW+RkprpzedVaiv/1gmBlwak user@sanya.local
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIKQUcLLvGHqhe/DJTxqA948ijXwsebWTVkQQlYjzQZE iPhone-13-mini
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm15/KadEcXrd+fh0fD/ys2FqjtnHIQk1KYDO7WpxNe eila
 storage:
   files:
     - path: /etc/selinux/config
