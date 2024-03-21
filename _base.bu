@@ -129,7 +129,7 @@ systemd:
             --env-file /var/home/core/.env/cloudflare-ddns.env \
             ghcr.io/rokoucha/cloudflare-ddns:latest \
             --hostname=%H \
-            --subdomain=dns \
+            --prefix=dns \
             ggrel.net
         ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
         ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
@@ -172,7 +172,7 @@ systemd:
             --rm \
             --sdnotify=conmon \
             --volume mackerel-agent:/var/lib/mackerel-agent/ \
-            docker.io/mackerel/mackerel-agent:0.75.1
+            docker.io/mackerel/mackerel-agent:0.80.0
         ExecStop=/usr/bin/podman stop \
             --ignore -t 10 \
             --cidfile=%t/%n.ctr-id
