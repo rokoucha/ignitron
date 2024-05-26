@@ -1,7 +1,0 @@
-entryPoints:
-  web:
-    address: :9115
-
-providers:
-  file:
-    filename: /traefik_dynamic.yml
