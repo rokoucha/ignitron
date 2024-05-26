@@ -20,12 +20,13 @@ storage:
         inline: |
           SELINUX=permissive
           SELINUXTYPE=targeted
-      mode: 0664
+      mode: 0644
       overwrite: true
       path: /etc/selinux/config
     - contents:
         inline: |
           [connection]
+          id=enp1s0
           interface-name=enp1s0
           type=ethernet
 
@@ -34,6 +35,7 @@ storage:
 
           [ipv6]
           addr-gen-mode=eui64
+          may-fail=false
           method=auto
       mode: 0600
       overwrite: true
@@ -105,7 +107,7 @@ storage:
               tcp dport { 9100, 9115 } ip6 saddr { 2400:2410:3800:2502::/64 } accept;
             }
           }
-      mode: 0600
+      mode: 0644
       overwrite: true
       path: /etc/sysconfig/nftables.conf
     - contents:
