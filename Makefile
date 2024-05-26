@@ -1,4 +1,4 @@
-BUTANE = podman run -i --rm --volume .:/butane quay.io/coreos/butane:release --files-dir /butane --pretty --strict
+BUTANE = butane --files-dir ./butane --pretty --strict
 GZIP = gzip -c9
 BASE64 = base64 -w0
 YQ_MERGE = yq eval-all '. as $$item ireduce ({}; . *+ $$item )'
@@ -11,7 +11,7 @@ TARGET = $(addsuffix .b64,$(basename $(filter-out $(BASE_CONFIG),$(wildcard *.bu
 
 _BASE_CONFIG = $(addprefix $(BASE_DIR), $(BASE_CONFIG))
 
-.PHONY: all clean controller worker
+.PHONY: all clean controller worker format
 .SUFFIXES: .b64 .ign .bu
 
 all: $(TARGET)
@@ -28,3 +28,6 @@ worker: $(_WORKER_FILES)
 
 .bu.ign:
 	$(YQ_MERGE) $(_BASE_CONFIG) $< | $(BUTANE) > $@
+
+format:
+	$(foreach target,$(wildcard *.bu),yq -i 'sort_keys(..) | (... | select(type == "!!seq")) |= sort | (... | select(type == "!!seq")) |= sort_by(.path) | (... | select(type == "!!seq")) |= sort_by(.name)' $(target);)
