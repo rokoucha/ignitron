@@ -1,0 +1,93 @@
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEYJoYObmHubty0NCSHuFRp0YjordT5T/7d5KYXSnnHOlFEqTx5UTdqbokUrThgqp+zwv3Aqb75KKX9Gyc18szk= sanya
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIKQUcLLvGHqhe/DJTxqA948ijXwsebWTVkQQlYjzQZE iPhone-13-mini
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm15/KadEcXrd+fh0fD/ys2FqjtnHIQk1KYDO7WpxNe eila
+storage:
+  files:
+    - contents:
+        local: .env/cloudflare-ddns.env
+      group:
+        name: core
+      mode: 0600
+      path: /etc/cloudflare-ddns.env
+      user:
+        name: core
+    - contents:
+        inline: |
+          [Unit]
+          Description=Create or Update dns record in cloudflare.
+          Wants=network-online.target
+          After=network-online.target
+
+          [Container]
+          ContainerName=cloudflare-ddns
+          EnvironmentFile=/etc/cloudflare-ddns.env
+          Exec=--ipv6 --hostname=%H --suffix=dns ggrel.net
+          Image=ghcr.io/rokoucha/cloudflare-ddns:latest
+          Network=host
+
+          [Install]
+          WantedBy=multi-user.target default.target
+      mode: 0644
+      path: /etc/containers/systemd/cloudflare-ddns.container
+    - contents:
+        inline: |
+          [Unit]
+          Description=mackerel-agent is an agent program to post your hosts' metrics to mackerel.io.
+          Wants=network-online.target
+          After=network-online.target
+
+          [Container]
+          ContainerName=mackerel-agent
+          Environment=HOST_ETC=/rootfs/etc
+          EnvironmentFile=/etc/mackerel-agent.env
+          HostName=%H
+          Image=docker.io/mackerel/mackerel-agent:0.82.0
+          Network=host
+          PodmanArgs=--ipc host
+          PodmanArgs=--pid host
+          Volume=/:/rootfs:ro
+          Volume=/dev/disk:/dev/disk:ro
+          Volume=/sys:/sys:ro
+          Volume=mackerel-agent:/var/lib/mackerel-agent
+
+          [Install]
+          WantedBy=multi-user.target default.target
+      mode: 0644
+      path: /etc/containers/systemd/mackerel-agent.container
+    - contents:
+        local: .env/mackerel-agent.env
+      group:
+        name: core
+      mode: 0600
+      path: /etc/mackerel-agent.env
+      user:
+        name: core
+    - contents:
+        inline: |
+          SELINUX=permissive
+          SELINUXTYPE=targeted
+      mode: 0664
+      overwrite: true
+      path: /etc/selinux/config
+    - contents:
+        inline: |
+          net.ipv4.ip_forward = 1
+          net.ipv6.conf.all.forwarding = 1
+      mode: 0644
+      path: /etc/sysctl.d/50-forward.conf
+    - mode: 0644
+      path: /var/lib/systemd/linger/core
+  links:
+    - path: /etc/localtime
+      target: /usr/share/zoneinfo/Asia/Tokyo
+systemd:
+  units:
+    - enabled: true
+      name: nftables.service
+variant: fcos
+version: 1.5.0
