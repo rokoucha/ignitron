@@ -1,3 +1,5 @@
+variant: fcos
+version: 1.5.0
 passwd:
   users:
     - groups:
@@ -238,7 +240,7 @@ storage:
           [Install]
           WantedBy=multi-user.target default.target
       mode: 0644
-      path: /etc/systemd/system/node_exporter.service
+      path: /etc/containers/systemd/node_exporter.container
     - contents:
         local: .env/ca.crt
       mode: 0600
@@ -256,5 +258,3 @@ systemd:
       name: docker.service
     - enabled: true
       name: nftables.service
-variant: fcos
-version: 1.5.0

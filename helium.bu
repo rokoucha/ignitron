@@ -6,8 +6,8 @@ passwd:
       ssh_authorized_keys:
         - ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEYJoYObmHubty0NCSHuFRp0YjordT5T/7d5KYXSnnHOlFEqTx5UTdqbokUrThgqp+zwv3Aqb75KKX9Gyc18szk= sanya
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm15/KadEcXrd+fh0fD/ys2FqjtnHIQk1KYDO7WpxNe eila
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIKQUcLLvGHqhe/DJTxqA948ijXwsebWTVkQQlYjzQZE iPhone-13-mini
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm15/KadEcXrd+fh0fD/ys2FqjtnHIQk1KYDO7WpxNe eila
 storage:
   disks:
     - device: /dev/vdb
@@ -16,13 +16,6 @@ storage:
           number: 0
       wipe_table: true
   files:
-    - contents:
-        inline: |
-          SELINUX=permissive
-          SELINUXTYPE=targeted
-      mode: 0644
-      overwrite: true
-      path: /etc/selinux/config
     - contents:
         inline: |
           [connection]
@@ -40,8 +33,6 @@ storage:
       mode: 0600
       overwrite: true
       path: /etc/NetworkManager/system-connections/enp1s0.nmconnection
-    - mode: 0644
-      path: /var/lib/systemd/linger/core
     - contents:
         local: .env/cloudflare-ddns.env
       group:
@@ -51,6 +42,54 @@ storage:
       user:
         name: core
     - contents:
+        inline: |
+          [Unit]
+          Description=Create or Update dns record in cloudflare.
+          Wants=network-online.target
+          After=network-online.target
+
+          [Container]
+          ContainerName=cloudflare-ddns
+          EnvironmentFile=/etc/cloudflare-ddns.env
+          Exec=--ipv6 --hostname=%H --suffix=dns ggrel.net
+          Image=ghcr.io/rokoucha/cloudflare-ddns:latest
+          Network=host
+
+          [Install]
+          WantedBy=multi-user.target default.target
+      mode: 0644
+      path: /etc/containers/systemd/cloudflare-ddns.container
+    - contents:
+        inline: |
+          [Unit]
+          Description=mackerel-agent is an agent program to post your hosts' metrics to mackerel.io.
+          Wants=network-online.target
+          After=network-online.target
+
+          [Container]
+          ContainerName=mackerel-agent
+          Environment=HOST_ETC=/rootfs/etc
+          EnvironmentFile=/etc/mackerel-agent.env
+          HostName=%H
+          Image=docker.io/mackerel/mackerel-agent:0.81.0
+          Network=host
+          PodmanArgs=--ipc host
+          PodmanArgs=--pid host
+          Volume=/:/rootfs:ro
+          Volume=/dev/disk:/dev/disk:ro
+          Volume=/sys:/sys:ro
+          Volume=mackerel-agent:/var/lib/mackerel-agent
+
+          [Install]
+          WantedBy=multi-user.target default.target
+      mode: 0644
+      path: /etc/containers/systemd/mackerel-agent.container
+    - contents:
+        inline: helium
+      mode: 0644
+      overwrite: true
+      path: /etc/hostname
+    - contents:
         local: .env/mackerel-agent.env
       group:
         name: core
@@ -59,10 +98,12 @@ storage:
       user:
         name: core
     - contents:
-        inline: helium
+        inline: |
+          SELINUX=permissive
+          SELINUXTYPE=targeted
       mode: 0644
       overwrite: true
-      path: /etc/hostname
+      path: /etc/selinux/config
     - contents:
         inline: |
           #
@@ -119,49 +160,6 @@ storage:
     - contents:
         inline: |
           [Unit]
-          Description=Create or Update dns record in cloudflare.
-          Wants=network-online.target
-          After=network-online.target
-
-          [Container]
-          ContainerName=cloudflare-ddns
-          EnvironmentFile=/etc/cloudflare-ddns.env
-          Exec=--ipv6 --hostname=%H --suffix=dns ggrel.net
-          Image=ghcr.io/rokoucha/cloudflare-ddns:latest
-          Network=host
-
-          [Install]
-          WantedBy=multi-user.target default.target
-      mode: 0644
-      path: /etc/containers/systemd/cloudflare-ddns.container
-    - contents:
-        inline: |
-          [Unit]
-          Description=mackerel-agent is an agent program to post your hosts' metrics to mackerel.io.
-          Wants=network-online.target
-          After=network-online.target
-
-          [Container]
-          ContainerName=mackerel-agent
-          Environment=HOST_ETC=/rootfs/etc
-          EnvironmentFile=/etc/mackerel-agent.env
-          HostName=%H
-          Image=docker.io/mackerel/mackerel-agent:0.81.0
-          Network=host
-          PodmanArgs=--ipc host
-          PodmanArgs=--pid host
-          Volume=/:/rootfs:ro
-          Volume=/dev/disk:/dev/disk:ro
-          Volume=/sys:/sys:ro
-          Volume=mackerel-agent:/var/lib/mackerel-agent
-
-          [Install]
-          WantedBy=multi-user.target default.target
-      mode: 0644
-      path: /etc/containers/systemd/mackerel-agent.container
-    - contents:
-        inline: |
-          [Unit]
           Description=Exporter for machine metrics
           Wants=network-online.target
           After=network-online.target
@@ -178,7 +176,9 @@ storage:
           [Install]
           WantedBy=multi-user.target default.target
       mode: 0644
-      path: /etc/systemd/system/node_exporter.service
+      path: /etc/containers/systemd/node_exporter.container
+    - mode: 0644
+      path: /var/lib/systemd/linger/core
   filesystems:
     - device: /dev/disk/by-partlabel/home
       format: btrfs
@@ -188,6 +188,8 @@ storage:
       target: /usr/share/zoneinfo/Asia/Tokyo
 systemd:
   units:
+    - enabled: true
+      name: nftables.service
     - contents: |
         [Unit]
         Before=local-fs.target
@@ -200,5 +202,3 @@ systemd:
         WantedBy=local-fs.target
       enabled: true
       name: var-home.mount
-    - enabled: true
-      name: nftables.service
