@@ -1,0 +1,273 @@
+variant: flatcar
+version: 1.2.0-experimental
+kernel_arguments:
+  should_exist:
+    - rd.networkd=1
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEYJoYObmHubty0NCSHuFRp0YjordT5T/7d5KYXSnnHOlFEqTx5UTdqbokUrThgqp+zwv3Aqb75KKX9Gyc18szk= sanya
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFro2O+EEcgDG5+hTMZmW/nI4kVOEast52pXFsjjpvhh iPhone-16
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzkU59D2FFVNxU6nkARKF6oNDcPU/ZXlstpvh+TR0pL helium
+storage:
+  disks:
+    - device: /dev/nvme0n1
+      partitions:
+        - label: ROOT
+          number: 9
+          size_mib: 0
+          resize: true
+  filesystems:
+    - device: /dev/mapper/rootencrypted
+      format: btrfs
+      label: ROOT
+  files:
+    - path: /etc/default/cloudflare-ddns
+      mode: 0600
+      contents:
+        inline: |
+          CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    - path: /etc/default/mackerel-agent
+      mode: 0600
+      contents:
+        inline: |
+          apikey=${MACKEREL_APIKEY}
+    - path: /etc/hostname
+      overwrite: true
+      contents:
+        inline: lithium
+    - path: /etc/opentelemetry-collector/config.yaml
+      contents:
+        local: opentelemetry-collector-config.yaml
+    - path: /etc/selinux/config
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          SELINUX=permissive
+          SELINUXTYPE=targeted
+    - path: /etc/ssh/sshd_config.d/custom.conf
+      overwrite: true
+      mode: 0600
+      contents:
+        inline: |
+          PermitRootLogin no
+          AllowUsers core
+    - path: /etc/sysconfig/nftables.conf
+      overwrite: true
+      contents:
+        inline: |
+          #
+          # This file will contain your nftables rules and
+          # is read by the systemd service when restarting
+          #
+          # These provide an iptables like set of filters
+          # (uncomment to include)
+          # include "/etc/nftables/arp-filter.nft"
+          # include "/etc/nftables/bridge-filter.nft"
+          # include "/etc/nftables/inet-filter.nft"
+          # include "/etc/nftables/ipv4-filter.nft"
+          # include "/etc/nftables/ipv4-mangle.nft"
+          # include "/etc/nftables/ipv4-nat.nft"
+          # include "/etc/nftables/ipv4-raw.nft"
+          # include "/etc/nftables/ipv6-filter.nft"
+          # include "/etc/nftables/ipv6-mangle.nft"
+          # include "/etc/nftables/ipv6-nat.nft"
+          # include "/etc/nftables/ipv6-raw.nft"
+          flush ruleset;
+
+          table inet filter {
+            chain input {
+              type filter hook input priority 0; policy drop;
+
+              ct state established,related accept;
+              ct state invalid drop;
+
+              iif lo accept;
+
+              ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept;
+              ip protocol icmp icmp type { destination-unreachable, router-advertisement, time-exceeded, parameter-problem } accept;
+
+              ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 10/second accept;
+              ip protocol icmp icmp type echo-request limit rate 10/second accept;
+
+              # Allow SSH
+              tcp dport ssh limit rate 15/minute accept;
+
+              # Allow k0s controller
+              tcp dport { 2380, 6443, 8132, 9443, 10250 } accept;
+
+              # Allow k0s worker
+              tcp dport { 179, 8132, 10250 } accept;
+              udp dport 4789 accept;
+
+              # Allow cilium controller
+              tcp dport { 2379-2380 } accept;
+
+              # Allow cilium
+              tcp dport { 4240, 4244-4255, 4250-4251, 6060-6062, 9878-9891, 9893, 9962-9964 } accept;
+              udp dport { 8472, 51871 } accept;
+
+              # Allow cilium connectivity test required ports
+              tcp dport 80 accept;
+
+              # Allow Linux local ports
+              tcp dport 32768-61000 accept;
+              udp dport 32768-61000 accept;
+
+              # Allow pod and service IP
+              ip daddr { 10.244.0.0/16, 10.96.0.0/12 } accept;
+              ip6 daddr { fd00::/108, fd01::/108 } accept;
+            }
+
+            chain forward {
+              type filter hook forward priority 0; policy drop;
+
+              # Allow pod and service IP
+              ip saddr { 10.244.0.0/16, 10.96.0.0/12 } accept;
+              ip daddr { 10.244.0.0/16, 10.96.0.0/12 } accept;
+              ip6 saddr { fd00::/108, fd01::/108 } accept;
+              ip6 daddr { fd00::/108, fd01::/108 } accept;
+            }
+
+            chain output {
+              type filter hook output priority 0; policy accept;
+            }
+          }
+    - path: /etc/sysctl.d/50-forward.conf
+      mode: 0644
+      contents:
+        inline: |
+          net.ipv4.ip_forward = 1
+          net.ipv6.conf.all.forwarding = 1
+    - path: /etc/systemd/network/enp2s0f0.network
+      contents:
+        inline: |
+          [Match]
+          Name=enp2s0f0
+
+          [Network]
+          DHCP=IPv6
+          Address=172.16.2.11/24
+          Gateway=172.16.2.1
+          DNS=172.16.2.1
+          IPv6AcceptRA=true
+          IPv4Forward=true
+          IPv6Forward=true
+
+          [IPv6AcceptRA]
+          UseDNS=true
+          UseNTP=true
+  links:
+    - path: /etc/localtime
+      target: /usr/share/zoneinfo/Asia/Tokyo
+  luks:
+    - name: rootencrypted
+      device: /dev/disk/by-partlabel/ROOT
+      wipe_volume: true
+      clevis:
+        tang:
+          - url: http://magnesium.dns.ggrel.net
+            thumbprint: pENOWLEiAOczeVeHlRYjxk2wutggE3jRByFYxQ5ppJk
+systemd:
+  units:
+    - name: cloudflare-ddns.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Create or Update dns record in cloudflare.
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        TimeoutStartSec=0
+        ExecStartPre=-/usr/bin/docker kill cloudflare-ddns
+        ExecStartPre=-/usr/bin/docker rm cloudflare-ddns
+        ExecStart=/usr/bin/docker run \
+            --env-file %E/default/cloudflare-ddns \
+            --name cloudflare-ddns \
+            --network host \
+            --rm \
+            ghcr.io/rokoucha/cloudflare-ddns:latest --hostname=%H --suffix=dns ggrel.net
+        Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: mackerel-agent.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=mackerel.io agent
+        Documentation=https://mackerel.io/
+        Wants=network-online.target
+        After=network-online.target nss-lookup.target
+
+        [Service]
+        TimeoutStartSec=0
+        ExecStartPre=-/usr/bin/docker kill mackerel-agent
+        ExecStartPre=-/usr/bin/docker rm mackerel-agent
+        ExecStart=/usr/bin/docker run \
+            --env-file %E/default/mackerel-agent \
+            --hostname %H \
+            --name mackerel-agent \
+            --network host \
+            --rm \
+            --env HOST_ETC=/rootfs/etc \
+            --volume /:/rootfs:ro \
+            --volume /dev/disk:/dev/disk:ro \
+            --volume /sys:/sys:ro \
+            --volume mackerel-agent:/var/lib/mackerel-agent \
+            docker.io/mackerel/mackerel-agent:latest
+        Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: nftables.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Netfilter Tables
+        Documentation=man:nft(8)
+        Wants=network-pre.target
+        Before=network-pre.target
+
+        [Service]
+        Type=oneshot
+        ProtectSystem=full
+        ProtectHome=true
+        ExecStart=/usr/bin/nft -f /etc/sysconfig/nftables.conf
+        ExecReload=/usr/bin/nft 'flush ruleset; include "/etc/sysconfig/nftables.conf";'
+        ExecStop=/usr/bin/nft flush ruleset
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: opentelemetry-collector.service
+      enabled: false
+      contents: |
+        [Unit]
+        Description=OpenTelemetry Collector
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        TimeoutStartSec=0
+        ExecStartPre=-/usr/bin/docker kill opentelemetry-collector
+        ExecStartPre=-/usr/bin/docker rm opentelemetry-collector
+        ExecStart=/usr/bin/docker run \
+            --env HOSTNAME=%H \
+            --hostname %H \
+            --name opentelemetry-collector \
+            --network host \
+            --rm \
+            --volume /:/hostfs:ro \
+            --volume /dev/disk:/dev/disk:ro \
+            --volume /sys:/sys:ro \
+            --volume %E/opentelemetry-collector/config.yaml:/etc/otelcol-contrib/config.yaml \
+            ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
+        Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
