@@ -158,17 +158,22 @@ storage:
               type filter hook output priority 0; policy accept;
             }
           }
+    - path: /etc/sysctl.d/50-allow-privileged-ports.conf
+      mode: 0644
+      contents:
+        inline: |
+          net.ipv4.ip_unprivileged_port_start = 80
     - path: /etc/sysctl.d/50-forward.conf
       mode: 0644
       contents:
         inline: |
           net.ipv4.ip_forward = 1
           net.ipv6.conf.all.forwarding = 1
-    - path: /etc/sysctl.d/50-allow-privileged-ports.conf
+    - path: /etc/sysctl.d/50-elasticsearch.conf
       mode: 0644
       contents:
         inline: |
-          net.ipv4.ip_unprivileged_port_start = 80
+          vm.max_map_count = 262144
     - path: /etc/systemd/network/enp2s0f0.network
       contents:
         inline: |
