@@ -118,6 +118,9 @@ storage:
               # Allow SSH
               tcp dport ssh limit rate 15/minute accept;
 
+              # Allow litestream metrics
+              tcp dport { 9090 } accept;
+
               # Allow k0s controller
               tcp dport { 2380, 6443, 8132, 9443, 10250 } accept;
 
