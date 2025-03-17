@@ -257,11 +257,11 @@ systemd:
         ExecStartPre=-/usr/bin/docker rm litestream
         ExecStart=/usr/bin/docker run \
             --name litestream \
-            --privileged \
             --publish 9090:9090 \
             --rm \
-            --volume %E/litestream-materia-ls.key:/etc/litestream-materia-ls.key \
-            --volume %E/litestream.yml:/etc/litestream.yml \
+            --volume /var/lib/k0s/db:/var/lib/k0s/db \
+            --volume %E/litestream-materia-ls.key:/etc/litestream-materia-ls.key:ro \
+            --volume %E/litestream.yml:/etc/litestream.yml:ro \
             docker.io/litestream/litestream:latest \
             replicate
         Type=simple
