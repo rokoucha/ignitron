@@ -258,9 +258,10 @@ systemd:
         ExecStart=/usr/bin/docker run \
             --name litestream \
             --network host \
+            --publish 9090:9090 \
             --rm \
-            --volume %E/litestream.yml:/etc/litestream.yml \
             --volume %E/litestream-materia-ls.key:/etc/litestream-materia-ls.key \
+            --volume %E/litestream.yml:/etc/litestream.yml \
             docker.io/litestream/litestream:latest \
             replicate
         Type=simple
