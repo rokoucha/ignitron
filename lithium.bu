@@ -38,6 +38,19 @@ storage:
       overwrite: true
       contents:
         inline: lithium
+    - path: /etc/litestream.yml
+      contents:
+        inline: |
+          addr: "[::]:9090"
+          dbs:
+            - path: /var/lib/k0s/db/state.db
+              replicas:
+                - url: sftp://materia-ls@beryllium.dns.ggrel.net/volume1/backups/litestream/materia-k0s
+                  key-path: /etc/litestream-materia-ls.key
+    - path: /etc/litestream-materia-ls.key
+      mode: 0600
+      contents:
+        local: litestream-materia-ls.key
     - path: /etc/modules-load.d/cilium.conf
       contents:
         inline: |
@@ -223,6 +236,30 @@ systemd:
             --network host \
             --rm \
             ghcr.io/rokoucha/cloudflare-ddns:latest --hostname=%H --suffix=dns ggrel.net
+        Type=simple
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: litestream.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Litestream
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        TimeoutStartSec=0
+        ExecStartPre=-/usr/bin/docker kill litestream
+        ExecStartPre=-/usr/bin/docker rm litestream
+        ExecStart=/usr/bin/docker run \
+            --name litestream \
+            --network host \
+            --rm \
+            --volume %E/litestream.yml:/etc/litestream.yml \
+            --volume %E/litestream-materia-ls.key:/etc/litestream-materia-ls.key \
+            docker.io/litestream/litestream:latest \
+            replicate
         Type=simple
 
         [Install]
