@@ -45,7 +45,8 @@ storage:
           dbs:
             - path: /var/lib/k0s/db/state.db
               replicas:
-                - url: sftp://materia-ls@beryllium.dns.ggrel.net/volume1/backups/litestream/materia-k0s
+                - url: sftp://materia-ls@beryllium.dns.ggrel.net/backups/litestream/materia-k0s
+                  sync-interval: 1m
                   key-path: /etc/litestream-materia-ls.key
     - path: /etc/litestream-materia-ls.key
       mode: 0600
