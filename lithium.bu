@@ -257,7 +257,7 @@ systemd:
         ExecStartPre=-/usr/bin/docker rm litestream
         ExecStart=/usr/bin/docker run \
             --name litestream \
-            --network host \
+            --privileged \
             --publish 9090:9090 \
             --rm \
             --volume %E/litestream-materia-ls.key:/etc/litestream-materia-ls.key \
