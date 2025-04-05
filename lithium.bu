@@ -7,8 +7,7 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        - ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEYJoYObmHubty0NCSHuFRp0YjordT5T/7d5KYXSnnHOlFEqTx5UTdqbokUrThgqp+zwv3Aqb75KKX9Gyc18szk= sanya
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzkU59D2FFVNxU6nkARKF6oNDcPU/ZXlstpvh+TR0pL rokoucha@helium
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFro2O+EEcgDG5+hTMZmW/nI4kVOEast52pXFsjjpvhh iPhone-16
     - name: opksshuser
       no_create_home: true
