@@ -10,7 +10,14 @@ passwd:
         - ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEYJoYObmHubty0NCSHuFRp0YjordT5T/7d5KYXSnnHOlFEqTx5UTdqbokUrThgqp+zwv3Aqb75KKX9Gyc18szk= sanya
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEto28bqf5JfCGMehpMYk4IFKLOo09ckd800shUJdN4S iPad-mini-6
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFro2O+EEcgDG5+hTMZmW/nI4kVOEast52pXFsjjpvhh iPhone-16
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzkU59D2FFVNxU6nkARKF6oNDcPU/ZXlstpvh+TR0pL helium
+    - name: opksshuser
+      no_create_home: true
+      primary_group: opksshuser
+      shell: /sbin/nologin
+      system: true
+  groups:
+    - name: opksshuser
+      system: true
 storage:
   disks:
     - device: /dev/nvme0n1
@@ -50,6 +57,22 @@ storage:
     - path: /etc/opentelemetry-collector/config.yaml
       contents:
         local: opentelemetry-collector-config.yaml
+    - path: /etc/opk/auth_id
+      mode: 0640
+      group:
+        name: opksshuser
+      overwrite: true
+      contents:
+        inline: |
+          core ${OPKSSH_EMAIL} ${OPKSSH_ISSUER}
+    - path: /etc/opk/providers
+      mode: 0640
+      group:
+        name: opksshuser
+      overwrite: true
+      contents:
+        inline: |
+          ${OPKSSH_ISSUER} ${OPKSSH_CLIENT_ID} 24h
     - path: /etc/selinux/config
       mode: 0644
       overwrite: true
@@ -57,13 +80,32 @@ storage:
         inline: |
           SELINUX=permissive
           SELINUXTYPE=targeted
-    - path: /etc/ssh/sshd_config.d/custom.conf
+    - path: /etc/ssh/sshd_config.d/50-key.conf
+      overwrite: true
+      mode: 0600
+      contents:
+        inline: |
+          HostKey /etc/ssh/ssh_host_ecdsa_key
+          HostKey /etc/ssh/ssh_host_ed25519_key
+    - path: /etc/ssh/sshd_config.d/50-opkssh.conf
+      overwrite: true
+      mode: 0600
+      contents:
+        inline: |
+          AuthorizedKeysCommand /opt/bin/opkssh verify %u %k %t
+          AuthorizedKeysCommandUser opksshuser
+    - path: /etc/ssh/sshd_config.d/50-restrict-user.conf
       overwrite: true
       mode: 0600
       contents:
         inline: |
           PermitRootLogin no
           AllowUsers core
+    - path: /etc/sudoers.d/opksshuser
+      mode: 0640
+      contents:
+        inline: |
+          opksshuser ALL=(ALL) NOPASSWD: /opt/bin/opkssh readhome *
     - path: /etc/sysconfig/nftables.conf
       overwrite: true
       contents:
@@ -186,6 +228,16 @@ storage:
           [IPv6AcceptRA]
           UseDNS=true
           UseNTP=true
+    - path: /opt/bin/opkssh
+      mode: 0755
+      contents:
+        source: https://github.com/openpubkey/opkssh/releases/latest/download/opkssh-linux-amd64
+    - path: /var/log/opkssh.log
+      mode: 0660
+      group:
+        name: opksshuser
+      contents:
+        inline: ""
   links:
     - path: /etc/localtime
       target: /usr/share/zoneinfo/Asia/Tokyo
