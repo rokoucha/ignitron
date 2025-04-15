@@ -200,6 +200,8 @@ storage:
               tcp dport 8086 accept;
               # OpenTelemetry Collector
               tcp dport { 4317, 4318 } accept;
+              # Litestream metrics
+              tcp dport 9090 accept;
             }
 
             chain forward {
